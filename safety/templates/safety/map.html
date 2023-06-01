@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="mapid" style="height: 100vh; width: 100%;"></div>
+
+<script>
+    var map = L.map('mapid').setView([48.3794, 31.1656], 6); // Украина
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var markersLayer = L.layerGroup().addTo(map);
+
+    function createMarker(latitude, longitude, comment) {
+        var marker = L.marker([latitude, longitude]).addTo(markersLayer);
+        marker.bindPopup(comment);
+    }
+
+    {% for place in places %}
+        createMarker({{ place.latitude }}, {{ place.longitude }}, '{{ place.comment }}');
+    {% endfor %}
+
+    map.on('click', function(e) {
+        var popup = L.popup({ closeButton: false })
+            .setLatLng(e.latlng)
+            .setContent('<form id="comment-form">' +
+                '<input type="text" id="comment-input" placeholder="Введите комментарий">' +
+                '<button type="submit">Сохранить</button>' +
+                '</form>')
+            .openOn(map);
+
+        var commentForm = document.getElementById('comment-form');
+        var commentInput = document.getElementById('comment-input');
+
+        commentForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var latitude = e.latlng.lat.toFixed(6);
+            var longitude = e.latlng.lng.toFixed(6);
+            var comment = commentInput.value;
+
+            if (comment) {
+                var formData = new FormData();
+                formData.append('latitude', latitude);
+                formData.append('longitude', longitude);
+                formData.append('comment', comment);
+
+                fetch('', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                }).then(function(response) {
+                    if (response.ok) {
+                        response.json().then(function(data) {
+                            createMarker(data.latitude, data.longitude, data.comment);
+                            map.closePopup(popup);
+                        });
+                    } else {
+                        console.error('Ошибка сохранения комментария');
+                    }
+                }).catch(function(error) {
+                    console.error(error);
+                });
+            } else {
+                console.error('Пожалуйста, введите комментарий');
+            }
+        });
+    });
+
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('leaflet-marker-icon')) {
+            var marker = event.target;
+            var latitude = marker.getLatLng().lat.toFixed(6);
+            var longitude = marker.getLatLng().lng.toFixed(6);
+
+            fetch('', {
+                method: 'GET',
+            }).then(function(response) {
+                if (response.ok) {
+                    response.json().then(function(data) {
+                        for (var i = 0; i < data.length; i++) {
+                            if (data[i].latitude === latitude && data[i].longitude === longitude) {
+                                marker.bindPopup(data[i].comment).openPopup();
+                                break;
+                            }
+                        }
+                    });
+                } else {
+                    console.error('Ошибка получения данных места');
+                }
+            }).catch(function(error) {
+                console.error(error);
+            });
+        }
+    });
+
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
