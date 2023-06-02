@@ -1,0 +1,14 @@
+#point-list-container {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+
+#point-list {
+    list-style: none;
+    padding: 0;
+}
+
+#point-list li {
+    margin-bottom: 5px;
+}

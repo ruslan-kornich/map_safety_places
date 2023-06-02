@@ -1,19 +1,10 @@
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
-from django.views.generic.edit import CreateView
-from django.urls import reverse_lazy
-from .forms import SafetyPlaceForm
-from .models import SafetyPlace
-from django.core import serializers
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-
-from rest_framework_gis.serializers import GeoModelSerializer
-
 from django.shortcuts import render
 from django.http import JsonResponse
 from .forms import SafetyPlaceForm
 from .models import SafetyPlace
+from datetime import datetime
+from django.forms.models import model_to_dict
+import json
 
 
 def map_view(request):
@@ -43,14 +34,17 @@ def create_place(request):
             place = form.save(commit=False)
             place.user = request.user
             place.save()
-            return JsonResponse(
-                {
-                    "id": place.id,
-                    "latitude": place.latitude,
-                    "longitude": place.longitude,
-                    "comment": place.comment,
-                }
-            )
+
+            serialized_place = {
+                "id": place.id,
+                "latitude": place.latitude,
+                "longitude": place.longitude,
+                "comment": place.comment,
+                "user": place.user.username,
+                "created_at": place.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+            return JsonResponse(serialized_place)
         else:
             return JsonResponse({"error": "Invalid form data"}, status=400)
     else:

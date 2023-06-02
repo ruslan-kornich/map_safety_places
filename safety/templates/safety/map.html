@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div id="mapid" style="height: 100vh; width: 100%;"></div>
+<div id="mapid" style="height: 100vh; width: 70%; float: left;"></div>
+
+<div id="point-list" style="height: 100vh; width: 30%; overflow-y: auto;">
+    <h3>Сведения о местах</h3>
+    <div id="infoContainer"></div>
+</div>
 
 <script>
     var map = L.map('mapid').setView([48.3794, 31.1656], 6); // Украина
@@ -12,15 +17,54 @@
     }).addTo(map);
 
     var markersLayer = L.layerGroup().addTo(map);
+    var infoContainer = document.getElementById('infoContainer');
 
     function createMarker(latitude, longitude, comment) {
         var marker = L.marker([latitude, longitude]).addTo(markersLayer);
         marker.bindPopup(comment);
+
+        return marker; // Возвращаем созданный маркер
     }
 
+    function createListItem(comment) {
+        // Добавляем точку в список точек
+        var infoElement = document.createElement('p');
+        infoElement.textContent = comment;
+        infoContainer.appendChild(infoElement);
+    }
+
+    var visibleMarkers = []; // Массив видимых маркеров
+
     {% for place in places %}
-        createMarker({{ place.latitude }}, {{ place.longitude }}, '{{ place.comment }}');
+        var marker = createMarker({{ place.latitude }}, {{ place.longitude }}, '{{ place.comment }}');
+        visibleMarkers.push(marker); // Добавляем маркер в массив видимых маркеров
     {% endfor %}
+
+    map.on('moveend', updateVisibleMarkers);
+    map.on('zoomend', updateVisibleMarkers);
+
+    function updateVisibleMarkers() {
+        // Очищаем список точек перед обновлением
+        infoContainer.innerHTML = '';
+
+        // Получаем границы видимой области карты
+        var bounds = map.getBounds();
+        visibleMarkers = [];
+
+        // Фильтруем точки, оставляя только те, которые находятся в пределах видимой области
+        markersLayer.eachLayer(function(marker) {
+            var latlng = marker.getLatLng();
+            if (bounds.contains(latlng)) {
+                visibleMarkers.push(marker);
+            }
+        });
+
+        // Добавляем точки в список точек
+        visibleMarkers.forEach(function(marker) {
+            var comment = marker.getPopup().getContent();
+            createListItem(comment);
+        });
+    }
 
     map.on('click', function(e) {
         var popup = L.popup({ closeButton: false })
@@ -42,19 +86,21 @@
             var comment = commentInput.value;
 
             if (comment) {
-                var formData = new FormData();
-                formData.append('latitude', latitude);
-                formData.append('longitude', longitude);
-                formData.append('comment', comment);
+                var payload = new FormData();
+                payload.append('latitude', latitude);
+                payload.append('longitude', longitude);
+                payload.append('comment', comment);
 
-                fetch('', {
+                fetch('/create/', {
                     method: 'POST',
-                    body: formData,
                     headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                    body: payload
                 }).then(function(response) {
                     if (response.ok) {
                         response.json().then(function(data) {
-                            createMarker(data.latitude, data.longitude, data.comment);
+                            var marker = createMarker(data.latitude, data.longitude, data.comment);
+                            visibleMarkers.push(marker); // Добавляем маркер в массив видимых маркеров
+                            createListItem(data.comment);
                             map.closePopup(popup);
                         });
                     } else {
@@ -63,8 +109,6 @@
                 }).catch(function(error) {
                     console.error(error);
                 });
-            } else {
-                console.error('Пожалуйста, введите комментарий');
             }
         });
     });
