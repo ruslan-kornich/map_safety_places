@@ -19,9 +19,61 @@
     var markersLayer = L.layerGroup().addTo(map);
     var infoContainer = document.getElementById('infoContainer');
 
-    function createMarker(latitude, longitude, comment) {
+    function createMarker(latitude, longitude, comment, placeId) {
         var marker = L.marker([latitude, longitude]).addTo(markersLayer);
-        marker.bindPopup(comment);
+        marker.bindPopup('<form id="comment-form">' +
+        '<input type="text" id="comment-input" value="' + comment + '">' +
+        '<button type="submit">Обновить</button>' +
+        '<button id="delete-button" type="button">Удалить</button>' +
+        '</form>');
+
+        marker.on('popupopen', function() {
+            var commentForm = document.getElementById('comment-form');
+            var commentInput = document.getElementById('comment-input');
+            var deleteButton = document.getElementById('delete-button');
+
+            commentForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                var comment = commentInput.value;
+
+                if (comment) {
+                    var payload = new FormData();
+                    payload.append('comment', comment);
+
+                    fetch('/update/' + placeId + '/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                        body: payload
+                    }).then(function(response) {
+                        if (response.ok) {
+                            marker.getPopup().setContent(comment);
+                            map.closePopup();
+                        } else {
+                            console.error('Ошибка обновления комментария');
+                        }
+                    }).catch(function(error) {
+                        console.error(error);
+                    });
+                }
+            });
+
+            deleteButton.addEventListener('click', function() {
+                fetch('/delete/' + placeId + '/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                }).then(function(response) {
+                    if (response.ok) {
+                        markersLayer.removeLayer(marker);
+                        map.closePopup();
+                    } else {
+                        console.error('Ошибка удаления комментария');
+                    }
+                }).catch(function(error) {
+                    console.error(error);
+                });
+            });
+        });
 
         return marker; // Возвращаем созданный маркер
     }
@@ -36,7 +88,7 @@
     var visibleMarkers = []; // Массив видимых маркеров
 
     {% for place in places %}
-        var marker = createMarker({{ place.latitude }}, {{ place.longitude }}, '{{ place.comment }}');
+        var marker = createMarker({{ place.latitude }}, {{ place.longitude }}, '{{ place.comment }}', {{ place.id }});
         visibleMarkers.push(marker); // Добавляем маркер в массив видимых маркеров
     {% endfor %}
 
@@ -111,33 +163,6 @@
                 });
             }
         });
-    });
-
-    document.addEventListener('click', function(event) {
-        if (event.target.classList.contains('leaflet-marker-icon')) {
-            var marker = event.target;
-            var latitude = marker.getLatLng().lat.toFixed(6);
-            var longitude = marker.getLatLng().lng.toFixed(6);
-
-            fetch('', {
-                method: 'GET',
-            }).then(function(response) {
-                if (response.ok) {
-                    response.json().then(function(data) {
-                        for (var i = 0; i < data.length; i++) {
-                            if (data[i].latitude === latitude && data[i].longitude === longitude) {
-                                marker.bindPopup(data[i].comment).openPopup();
-                                break;
-                            }
-                        }
-                    });
-                } else {
-                    console.error('Ошибка получения данных места');
-                }
-            }).catch(function(error) {
-                console.error(error);
-            });
-        }
     });
 
     function getCookie(name) {

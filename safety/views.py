@@ -1,30 +1,35 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+
 from .forms import SafetyPlaceForm
+from rest_framework import viewsets
+from .serializers import SafetyPlaceSerializer
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from .models import SafetyPlace
-from datetime import datetime
-from django.forms.models import model_to_dict
-import json
 
 
 def map_view(request):
-    if request.method == "POST":
-        form = SafetyPlaceForm(request.POST)
-        if form.is_valid():
-            place = form.save(commit=False)
-            place.user = request.user
-            place.save()
-            return JsonResponse(
-                {
-                    "latitude": place.latitude,
-                    "longitude": place.longitude,
-                    "comment": place.comment,
-                }
-            )
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            form = SafetyPlaceForm(request.POST)
+            if form.is_valid():
+                place = form.save(commit=False)
+                place.user = request.user
+                place.save()
+                return JsonResponse(
+                    {
+                        "latitude": place.latitude,
+                        "longitude": place.longitude,
+                        "comment": place.comment,
+                    }
+                )
+        else:
+            return JsonResponse({"error": "You must be logged in to create a place"}, status=403)
     else:
         form = SafetyPlaceForm()
-    places = SafetyPlace.objects.all()
-    return render(request, "safety/map.html", {"form": form, "places": places})
+        places = SafetyPlace.objects.all()
+        return render(request, "safety/map.html", {"form": form, "places": places})
+
 
 
 def create_place(request):
@@ -49,3 +54,27 @@ def create_place(request):
             return JsonResponse({"error": "Invalid form data"}, status=400)
     else:
         return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+class SafetyPlaceViewSet(viewsets.ModelViewSet):
+    queryset = SafetyPlace.objects.all()
+    serializer_class = SafetyPlaceSerializer
+
+
+@csrf_exempt
+def update_place(request, place_id):
+    if request.method == 'POST':
+        data = request.POST
+        comment = data.get('comment', None)
+        if comment is not None:
+            SafetyPlace.objects.filter(id=place_id).update(comment=comment)
+            return JsonResponse({'status': 'success'})
+        else:
+            return JsonResponse({'status': 'error'}, status=400)
+
+
+@csrf_exempt
+def delete_place(request, place_id):
+    if request.method == 'POST':
+        SafetyPlace.objects.filter(id=place_id).delete()
+        return JsonResponse({'status': 'success'})
