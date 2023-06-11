@@ -8,18 +8,23 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 var markersLayer = L.layerGroup().addTo(map);
 var infoContainer = document.getElementById('infoContainer');
 
+// ...
+
 function createMarker(latitude, longitude, comment, placeId) {
     var marker = L.marker([latitude, longitude]).addTo(markersLayer);
-    marker.bindPopup('<div class="comment">' + comment + '</div>' +
-        (userAuthenticated === "True" ?
-            '<form id="comment-form">' +
-            '<input type="text" id="comment-input" value="' + comment + '">' +
-            '<button type="submit">Обновить</button>' +
-            '<button id="delete-button" type="button">Удалить</button>' +
-            '</form>' : ''));
+    marker.comment = comment;
 
-    marker.on('popupopen', function() {
+    marker.on('click', function () {
         if (userAuthenticated === "True") {
+            var popup = L.popup({ closeButton: false })
+                .setLatLng(marker.getLatLng())
+                .setContent('<form id="comment-form">' +
+                    '<input type="text" id="comment-input" value="' + comment + '">' +
+                    '<button type="submit">Обновить</button>' +
+                    '<button id="delete-button" type="button">Удалить</button>' +
+                    '</form>')
+                .openOn(map);
+
             var commentForm = document.getElementById('comment-form');
             var commentInput = document.getElementById('comment-input');
             var deleteButton = document.getElementById('delete-button');
@@ -27,11 +32,11 @@ function createMarker(latitude, longitude, comment, placeId) {
             commentForm.addEventListener('submit', function(event) {
                 event.preventDefault();
 
-                var comment = commentInput.value;
+                var updatedComment = commentInput.value;
 
-                if (comment) {
+                if (updatedComment) {
                     var payload = new FormData();
-                    payload.append('comment', comment);
+                    payload.append('comment', updatedComment);
 
                     fetch('/update/' + placeId + '/', {
                         method: 'POST',
@@ -39,13 +44,8 @@ function createMarker(latitude, longitude, comment, placeId) {
                         body: payload
                     }).then(function(response) {
                         if (response.ok) {
-                            marker.getPopup().setContent('<div class="comment">' + comment + '</div>' +
-                                '<form id="comment-form">' +
-                                '<input type="text" id="comment-input" value="' + comment + '">' +
-                                '<button type="submit">Обновить</button>' +
-                                '<button id="delete-button" type="button">Удалить</button>' +
-                                '</form>');
-                            map.closePopup();
+                            marker.comment = updatedComment;
+                            map.closePopup(popup);
                         } else {
                             console.error('Ошибка обновления комментария');
                         }
@@ -62,7 +62,7 @@ function createMarker(latitude, longitude, comment, placeId) {
                 }).then(function(response) {
                     if (response.ok) {
                         markersLayer.removeLayer(marker);
-                        map.closePopup();
+                        map.closePopup(popup);
                     } else {
                         console.error('Ошибка удаления комментария');
                     }
@@ -76,6 +76,7 @@ function createMarker(latitude, longitude, comment, placeId) {
     return marker; // Возвращаем созданный маркер
 }
 
+// ...
 
 
 function createListItem(comment) {
@@ -89,7 +90,6 @@ var visibleMarkers = []; // Массив видимых маркеров
 var mapLoaded = false; // Флаг загрузки карты
 
 for (let place of places) {
-    console.log(place.fields);  // измените эту строку
     let marker = createMarker(place.fields.latitude, place.fields.longitude, place.fields.comment, place.pk);
     visibleMarkers.push(marker);
 }
@@ -121,27 +121,15 @@ function updateVisibleMarkers() {
         }
     });
 
-    // Если пользователь аутентифицирован, обновляем информацию о точках в боковом окне
-    if (userAuthenticated) {
-        // Создаем объект для хранения уникальных комментариев
-        var uniqueComments = {};
-
-        visibleMarkers.forEach(function(marker) {
-            var comment = marker.getPopup().getContent();
-
-            // Добавляем комментарий в объект только если он еще не существует
-            if (!uniqueComments[comment]) {
-                uniqueComments[comment] = true;
-                createListItem(comment);
-            }
-        });
-    } else {
-        // Добавляем точки в список точек только для неаутентифицированных пользователей
-        visibleMarkers.forEach(function(marker) {
-            var comment = marker.getPopup().getContent();
+    // Используем комментарии из объекта маркера для отображения в боковом меню
+    var uniqueComments = {};
+    visibleMarkers.forEach(function(marker) {
+        var comment = marker.comment;
+        if (!uniqueComments[comment]) {
+            uniqueComments[comment] = true;
             createListItem(comment);
-        });
-    }
+        }
+    });
 }
 
 map.on('click', function(e) {

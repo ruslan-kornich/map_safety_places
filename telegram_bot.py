@@ -1,10 +1,14 @@
-
+import environ
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ContentType
 import aiohttp
 import json
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
 
-TOKEN = '6157857080:AAEUkI6FRDnQqqRSMhE6accOA6L8WlHHpV8'
+TOKEN = "6157857080:AAEUkI6FRDnQqqRSMhE6accOA6L8WlHHpV8"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
