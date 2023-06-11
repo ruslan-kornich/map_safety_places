@@ -3,6 +3,7 @@
 <html>
 <head>
     <title>Map Safety Places</title>
+    <link rel="stylesheet" type="text/css" href="{% static "css/navbar.css" %}">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
@@ -13,11 +14,34 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
        crossorigin=""></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
     <script src="https://kit.fontawesome.com/ba53ca1b53.js" crossorigin="anonymous"></script>
+
 </head>
 <body>
+<nav class="navbar">
+        <div class="navbar-logo">
+            Safety Places
+        </div>
+        <ul class="navbar-menu">
+            <li class="navbar-item">
+                <a href="#">Home</a>
+            </li>
+            <li class="navbar-item">
+                <a href="#">About</a>
+            </li>
+            <li class="navbar-item">
+                <a href="#">Contact</a>
+            </li>
+        </ul>
+    </nav>
+
     {% block content %}
     {% endblock %}
+ <footer class="footer">
+        &copy; 2023 My Website. All rights reserved.
+    </footer>
+<script src="{% static 'js/navbar.js' %}"></script>
 </body>
 </html>

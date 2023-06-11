@@ -7,6 +7,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import SafetyPlace
 from django.contrib.auth.decorators import login_required
+from accounts.models import User
+from django.http import JsonResponse
+
 
 def map_view(request):
     if request.method == 'POST':
@@ -27,10 +30,20 @@ def map_view(request):
             return JsonResponse({"error": "You must be logged in to create a place"}, status=403)
     else:
         form = SafetyPlaceForm()
-        places = SafetyPlace.objects.all()
-        places_json = serializers.serialize('json', places)
+        places = SafetyPlace.objects.select_related('user').all()
+
+        places_with_username = []
+        for place in places:
+            user_id = place.user_id
+            user = User.objects.get(id=user_id)
+            username = user.username
+            place.user_id = username  # Обновляем поле user_id в объекте place
+            places_with_username.append(place)
+
+        places_json = serializers.serialize('json', places_with_username)
         user_authenticated = request.user.is_authenticated
-        return render(request, "safety/map.html", {"form": form, "places_json": places_json, 'user_authenticated': user_authenticated})
+        return render(request, "safety/map.html",
+                      {"form": form, "places_json": places_json, 'user_authenticated': user_authenticated})
 
 
 @login_required
@@ -62,6 +75,7 @@ class SafetyPlaceViewSet(viewsets.ModelViewSet):
     queryset = SafetyPlace.objects.all()
     serializer_class = SafetyPlaceSerializer
 
+
 @login_required
 @csrf_exempt
 def update_place(request, place_id):
@@ -73,6 +87,7 @@ def update_place(request, place_id):
             return JsonResponse({'status': 'success'})
         else:
             return JsonResponse({'status': 'error'}, status=400)
+
 
 @login_required
 @csrf_exempt

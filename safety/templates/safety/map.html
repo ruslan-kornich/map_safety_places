@@ -4,22 +4,27 @@
 {% block content %}
 <div id="mapid" style="height: 100vh; width: 70%; float: left;"></div>
 
-<div id="point-list" style="height: 100vh; width: 30%; overflow-y: auto;">
+<div id="point-list" class="side-menu">
     <h3>Сведения о местах</h3>
     <div id="infoContainer">
+
         {% for place in places %}
+        <div class="comment-avatar">
+            <i class="fas fa-exclamation"></i>
+        </div>
+        <div class="author">{{ place.user.username }}</div>
         <div class="comment">{{ place.comment }}</div>
+        <div class="time">{{ place.created_at }}</div>
         {% endfor %}
     </div>
-</div>
 </div>
 
 <script type="text/javascript">
     let userAuthenticated = "{{ user_authenticated }}";
+
 </script>
 
 <script type="text/javascript">var places = JSON.parse('{{ places_json | escapejs }}');</script>
 
-<script src="https://kit.fontawesome.com/ba53ca1b53.js" crossorigin="anonymous"></script>
 <script src="{% static 'js/main.js' %}"></script>
 {% endblock %}

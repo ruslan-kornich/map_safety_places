@@ -1,15 +1,163 @@
+#mapid {
+  height: calc(100vh - 60px);
+  width: 100%;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  z-index: 0;
+}
+
+#point-list {
+  height: calc(100vh - 60px);
+  width: 30%;
+  overflow-y: auto;
+  position: fixed;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+
+body {
+  margin-top: 60px;
+}
+
 .comment-container {
-  background-color: #e3f2fd;
-  border-radius: 8px;
-  padding: 8px;
-  margin-bottom: 8px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 16px;
-  color: #000000;
-  font-weight: bold; /* Жирный текст */
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ccc;
+  margin-right: 10px;
+}
+
+.comment-content {
+  flex: 1;
+  background-color: #f2f2f2;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.comment-username {
+  font-weight: bold;
+}
+
+.comment-text {
+  margin-top: 5px;
 }
 
 
-.comment-container p {
-  margin: 0;
+
+.comment-timestamp {
+  font-size: 12px;
+  color: #999;
+}
+
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 999;
+}
+
+
+.navbar-logo {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.navbar-menu {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar-item {
+    margin-right: 20px;
+}
+
+.navbar-item a {
+    color: #fff;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.navbar-item a:hover {
+    color: #ff7f50;
+}
+
+body {
+    margin-top: 60px; /* Выравнивание контента под навбаром */
+}
+
+
+.side-menu {
+  height: calc(100vh - 60px);
+  width: 30%;
+  overflow-y: auto;
+  position: fixed;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+
+.comment-container {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ff7f50;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 24px;
+}
+
+.comment-avatar i {
+  transform: translateY(2px);
+}
+
+.comment-content {
+  flex: 1;
+  background-color: #f2f2f2;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.comment-username {
+  font-weight: bold;
+}
+
+.comment-text {
+  margin-top: 5px;
+}
+
+.comment-timestamp {
+  font-size: 12px;
+  color: #999;
 }

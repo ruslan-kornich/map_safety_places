@@ -1,4 +1,4 @@
-var map = L.map('mapid').setView([48.3794, 31.1656], 6); // Украина
+var map = L.map('mapid').setView([48.3794, 31.1656], 8); // Украина
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -10,9 +10,11 @@ var infoContainer = document.getElementById('infoContainer');
 
 // ...
 
-function createMarker(latitude, longitude, comment, placeId) {
+function createMarker(latitude, longitude, comment, placeId, user, created_at) {
     var marker = L.marker([latitude, longitude]).addTo(markersLayer);
     marker.comment = comment;
+    marker.user = user;
+    marker.created_at = created_at;
 
     marker.on('click', function () {
         if (userAuthenticated === "True") {
@@ -56,20 +58,20 @@ function createMarker(latitude, longitude, comment, placeId) {
             });
 
             deleteButton.addEventListener('click', function() {
-                fetch('/delete/' + placeId + '/', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                }).then(function(response) {
-                    if (response.ok) {
-                        markersLayer.removeLayer(marker);
-                        map.closePopup(popup);
-                    } else {
-                        console.error('Ошибка удаления комментария');
-                    }
-                }).catch(function(error) {
-                    console.error(error);
-                });
-            });
+    fetch('/delete/' + placeId + '/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    }).then(function(response) {
+        if (response.ok) {
+            markersLayer.removeLayer(marker);
+            map.closePopup(popup);
+        } else {
+            console.error('Ошибка удаления комментария');
+        }
+    }).catch(function(error) {
+        console.error(error);
+    });
+});
         }
     });
 
@@ -79,19 +81,52 @@ function createMarker(latitude, longitude, comment, placeId) {
 // ...
 
 
-function createListItem(comment) {
-    var infoElement = document.createElement('p');
-    infoElement.textContent = comment;
-    infoElement.classList.add('comment-container'); // Добавляем класс "comment-container"
-    infoContainer.appendChild(infoElement);
+function createListItem(username, comment, timestamp) {
+  var infoElement = document.createElement('div');
+  infoElement.classList.add('comment-container');
+
+  var avatarElement = document.createElement('div');
+  avatarElement.classList.add('comment-avatar');
+  infoElement.appendChild(avatarElement);
+
+  var contentElement = document.createElement('div');
+  contentElement.classList.add('comment-content');
+  infoElement.appendChild(contentElement);
+
+  var usernameElement = document.createElement('div');
+  usernameElement.textContent = username;
+  usernameElement.classList.add('comment-username');
+  contentElement.appendChild(usernameElement);
+
+  var commentElement = document.createElement('div');
+  commentElement.textContent = comment;
+  commentElement.classList.add('comment-text');
+  contentElement.appendChild(commentElement);
+
+  var timestampElement = document.createElement('div');
+  var timestampDate = new Date(timestamp);
+  var timeString = timestampDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  var dateString = timestampDate.toLocaleDateString();
+  timestampElement.textContent = timeString + '   ' + dateString;
+  timestampElement.classList.add('comment-timestamp');
+  contentElement.appendChild(timestampElement);
+
+  infoContainer.appendChild(infoElement);
 }
 
-var visibleMarkers = []; // Массив видимых маркеров
-var mapLoaded = false; // Флаг загрузки карты
 
+
+
+
+var visibleMarkers = [];
+var mapLoaded = false;
+
+console.log(places); // Вывод содержимого объекта places в консоль
 for (let place of places) {
-    let marker = createMarker(place.fields.latitude, place.fields.longitude, place.fields.comment, place.pk);
+    let marker = createMarker(place.fields.latitude, place.fields.longitude, place.fields.comment, place.pk, place.fields.user, place.fields.created_at);
     visibleMarkers.push(marker);
+
+    createListItem(place.fields.user, place.fields.comment, place.fields.created_at);
 }
 
 map.on('load', function() {
@@ -121,13 +156,15 @@ function updateVisibleMarkers() {
         }
     });
 
-    // Используем комментарии из объекта маркера для отображения в боковом меню
+    // Используем данные из объекта маркера для отображения в боковом меню
     var uniqueComments = {};
     visibleMarkers.forEach(function(marker) {
         var comment = marker.comment;
+        var user = marker.user;
+        var created_at = marker.created_at;
         if (!uniqueComments[comment]) {
             uniqueComments[comment] = true;
-            createListItem(comment);
+            createListItem(user, comment, created_at);
         }
     });
 }
@@ -165,9 +202,9 @@ map.on('click', function(e) {
                 }).then(function(response) {
                     if (response.ok) {
                         response.json().then(function(data) {
-                            var marker = createMarker(data.latitude, data.longitude, data.comment);
+                            var marker = createMarker(data.latitude, data.longitude, data.comment, data.user, data.created_at);
                             visibleMarkers.push(marker); // Добавляем маркер в массив видимых маркеров
-                            createListItem(data.comment);
+                            createListItem(data.user, data.comment, data.created_at);
                             map.closePopup(popup);
 
                             // Обновляем список точек
