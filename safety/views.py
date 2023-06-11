@@ -1,12 +1,12 @@
 from django.shortcuts import render
-
+from django.core import serializers
 from .forms import SafetyPlaceForm
 from rest_framework import viewsets
 from .serializers import SafetyPlaceSerializer
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import SafetyPlace
-
+from django.contrib.auth.decorators import login_required
 
 def map_view(request):
     if request.method == 'POST':
@@ -28,10 +28,12 @@ def map_view(request):
     else:
         form = SafetyPlaceForm()
         places = SafetyPlace.objects.all()
-        return render(request, "safety/map.html", {"form": form, "places": places})
+        places_json = serializers.serialize('json', places)
+        user_authenticated = request.user.is_authenticated
+        return render(request, "safety/map.html", {"form": form, "places_json": places_json, 'user_authenticated': user_authenticated})
 
 
-
+@login_required
 def create_place(request):
     if request.method == "POST":
         form = SafetyPlaceForm(request.POST)
@@ -60,7 +62,7 @@ class SafetyPlaceViewSet(viewsets.ModelViewSet):
     queryset = SafetyPlace.objects.all()
     serializer_class = SafetyPlaceSerializer
 
-
+@login_required
 @csrf_exempt
 def update_place(request, place_id):
     if request.method == 'POST':
@@ -72,7 +74,7 @@ def update_place(request, place_id):
         else:
             return JsonResponse({'status': 'error'}, status=400)
 
-
+@login_required
 @csrf_exempt
 def delete_place(request, place_id):
     if request.method == 'POST':
