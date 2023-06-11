@@ -80,9 +80,9 @@ function createMarker(latitude, longitude, comment, placeId) {
 
 
 function createListItem(comment) {
-    // Добавляем точку в список точек
     var infoElement = document.createElement('p');
-    infoElement.innerHTML = comment;
+    infoElement.textContent = comment;
+    infoElement.classList.add('comment-container'); // Добавляем класс "comment-container"
     infoContainer.appendChild(infoElement);
 }
 
