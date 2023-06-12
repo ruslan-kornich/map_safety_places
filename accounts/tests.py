@@ -1,3 +1,5 @@
-from django.test import TestCase
+from faker import Faker
 
-# Create your tests here.
+fake = Faker()
+random_email = fake.email()
+print(random_email)
