@@ -10,9 +10,12 @@ from django.contrib.auth.decorators import login_required
 from accounts.models import User
 from django.http import JsonResponse
 
+from django.core import serializers
+import json
+
 
 def map_view(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         if request.user.is_authenticated:
             form = SafetyPlaceForm(request.POST)
             if form.is_valid():
@@ -27,10 +30,12 @@ def map_view(request):
                     }
                 )
         else:
-            return JsonResponse({"error": "You must be logged in to create a place"}, status=403)
+            return JsonResponse(
+                {"error": "You must be logged in to create a place"}, status=403
+            )
     else:
         form = SafetyPlaceForm()
-        places = SafetyPlace.objects.select_related('user').all()
+        places = SafetyPlace.objects.select_related("user").all()
 
         places_with_username = []
         for place in places:
@@ -40,10 +45,17 @@ def map_view(request):
             place.user_id = username  # Обновляем поле user_id в объекте place
             places_with_username.append(place)
 
-        places_json = serializers.serialize('json', places_with_username)
+        places_json = serializers.serialize("json", places_with_username)
         user_authenticated = request.user.is_authenticated
-        return render(request, "safety/map.html",
-                      {"form": form, "places_json": places_json, 'user_authenticated': user_authenticated})
+        return render(
+            request,
+            "safety/map.html",
+            {
+                "form": form,
+                "places_json": places_json,
+                "user_authenticated": user_authenticated,
+            },
+        )
 
 
 @login_required
@@ -61,7 +73,7 @@ def create_place(request):
                 "longitude": place.longitude,
                 "comment": place.comment,
                 "user": place.user.username,
-                "created_at": place.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                "created_at": place.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
 
             return JsonResponse(serialized_place)
@@ -79,19 +91,19 @@ class SafetyPlaceViewSet(viewsets.ModelViewSet):
 @login_required
 @csrf_exempt
 def update_place(request, place_id):
-    if request.method == 'POST':
+    if request.method == "POST":
         data = request.POST
-        comment = data.get('comment', None)
+        comment = data.get("comment", None)
         if comment is not None:
             SafetyPlace.objects.filter(id=place_id).update(comment=comment)
-            return JsonResponse({'status': 'success'})
+            return JsonResponse({"status": "success"})
         else:
-            return JsonResponse({'status': 'error'}, status=400)
+            return JsonResponse({"status": "error"}, status=400)
 
 
 @login_required
 @csrf_exempt
 def delete_place(request, place_id):
-    if request.method == 'POST':
+    if request.method == "POST":
         SafetyPlace.objects.filter(id=place_id).delete()
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({"status": "success"})
