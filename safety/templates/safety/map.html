@@ -2,7 +2,9 @@
 {% load static %}
 
 {% block content %}
-<div id="mapid" style="height: 100vh; width: 70%; float: left;"></div>
+<div id="mapid">
+    <!-- Контент внутри карты здесь -->
+</div>
 
 <div id="point-list" class="side-menu">
     <h3>Сведения о местах</h3>
@@ -21,7 +23,6 @@
 
 <script type="text/javascript">
     let userAuthenticated = "{{ user_authenticated }}";
-
 </script>
 
 <script type="text/javascript">var places = JSON.parse('{{ places_json | escapejs }}');</script>

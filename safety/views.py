@@ -34,7 +34,6 @@ def map_view(request):
                 {"error": "You must be logged in to create a place"}, status=403
             )
     else:
-        form = SafetyPlaceForm()
         places = SafetyPlace.objects.select_related("user").all()
 
         places_with_username = []
@@ -51,11 +50,11 @@ def map_view(request):
             request,
             "safety/map.html",
             {
-                "form": form,
                 "places_json": places_json,
                 "user_authenticated": user_authenticated,
             },
         )
+
 
 
 @login_required
@@ -107,3 +106,36 @@ def delete_place(request, place_id):
     if request.method == "POST":
         SafetyPlace.objects.filter(id=place_id).delete()
         return JsonResponse({"status": "success"})
+
+
+from django.http import JsonResponse
+from django.views import View
+from .models import SafetyPlace
+
+
+class GetDataView(View):
+    def get(self, request, *args, **kwargs):
+        north_east_lat = self.request.GET.get('north_east_lat')
+        north_east_lng = self.request.GET.get('north_east_lng')
+        south_west_lat = self.request.GET.get('south_west_lat')
+        south_west_lng = self.request.GET.get('south_west_lng')
+
+        places = SafetyPlace.objects.filter(
+            latitude__lte=north_east_lat,
+            latitude__gte=south_west_lat,
+            longitude__lte=north_east_lng,
+            longitude__gte=south_west_lng,
+        )
+
+        data = []
+        for place in places:
+            data.append({
+                'id': place.id,
+                'latitude': place.latitude,
+                'longitude': place.longitude,
+                'comment': place.comment,
+                'user': place.user.username,
+                'created_at': place.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            })
+
+        return JsonResponse(data, safe=False)

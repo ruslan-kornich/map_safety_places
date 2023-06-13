@@ -1,6 +1,6 @@
 #mapid {
   height: calc(100vh - 60px);
-  width: 100%;
+  width: calc(100% - 22%); /* Уменьшаем ширину карты до 80% ширины экрана */
   position: fixed;
   top: 60px;
   left: 0;
@@ -10,7 +10,7 @@
 
 #point-list {
   height: calc(100vh - 60px);
-  width: 30%;
+  width: 20%; /* Уменьшим ширину бокового меню до 20% */
   overflow-y: auto;
   position: fixed;
   top: 60px;
@@ -20,6 +20,9 @@
   background-color: #f2f2f2;
   padding: 20px;
 }
+
+
+
 
 body {
   margin-top: 60px;
