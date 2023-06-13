@@ -70,7 +70,7 @@ coverage.xml
 # Translations
 *.mo
 *.pot
-telegram_bot.py
+
 # Sphinx documentation
 docs/_build/
 

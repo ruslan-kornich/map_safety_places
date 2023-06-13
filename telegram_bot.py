@@ -52,6 +52,22 @@ def generate_password(length):
     return password
 
 
+# Import the File class from Django
+from django.core.files import File
+
+
+# Add the get_profile_photo function above the start_cmd_handler function
+async def get_profile_photo(chat_id: int):
+    profile_pictures = await dp.bot.get_user_profile_photos(chat_id)
+    if profile_pictures.total_count == 0:
+        return None
+
+    photo_path = f"media/{chat_id}.jpg"
+    await profile_pictures.photos[0][-1].download(photo_path)
+
+    return photo_path
+
+
 @dp.message_handler(commands='start')
 async def start_cmd_handler(message: types.Message):
     global API_AUTH  # Update the global variable inside the function
@@ -74,6 +90,14 @@ async def start_cmd_handler(message: types.Message):
             is_superuser=True,  # Set is_superuser value
             is_active=True,  # Set is_active value
         )
+
+        # Download and save the profile photo
+        photo_path = await get_profile_photo(message.chat.id)
+        if photo_path is not None:
+            with open(photo_path, 'rb') as photo_file:
+                django_file = File(photo_file)
+                save_sync = sync_to_async(user.avatar.save)
+                await save_sync(f"{username}_avatar.jpg", django_file)
 
         await bot.send_message(
             message.chat.id,
