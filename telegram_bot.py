@@ -119,13 +119,13 @@ async def start_cmd_handler(message: types.Message, state: FSMContext):
             first_name=message.from_user.first_name,
             last_name=message.from_user.last_name,
             email=fake.email(),
-            password=password,
-            is_superuser=True,  # Set is_superuser value
-            is_active=True,  # Set is_active value
+            is_active=True,
+            is_staff=True,
         )
-
-        user.token = await generate_token(user)
-        await sync_to_async(user.save)()
+        set_password_sync = sync_to_async(user.set_password)
+        await set_password_sync(password)
+        save_sync = sync_to_async(user.save)
+        await save_sync()
 
         # Download and save the profile photo
         photo_path = await get_profile_photo(message.chat.id)
@@ -192,7 +192,7 @@ async def description_msg_handler(message: types.Message, state: FSMContext):
 
 
 async def save_location_description(
-    latitude: float, longitude: float, description: str
+        latitude: float, longitude: float, description: str
 ):
     headers = {"Authorization": f'Token {API_AUTH.get("token")}'}
 
@@ -205,7 +205,7 @@ async def save_location_description(
 
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            f"{API_URL}/api/safetyplaces/", headers=headers, json=data
+                f"{API_URL}/api/safetyplaces/", headers=headers, json=data
         ) as response:
             if response.status == 201:
                 print("Место успешно добавлено!")

@@ -1,6 +1,6 @@
 #mapid {
   height: calc(100vh - 60px);
-  width: calc(100% - 22%); /* Уменьшаем ширину карты до 80% ширины экрана */
+  width: calc(100% - 22%);
   position: fixed;
   top: 60px;
   left: 0;
@@ -10,7 +10,7 @@
 
 #point-list {
   height: calc(100vh - 60px);
-  width: 20%; /* Уменьшим ширину бокового меню до 20% */
+  width: 20%;
   overflow-y: auto;
   position: fixed;
   top: 60px;
@@ -21,9 +21,6 @@
   padding: 20px;
 }
 
-
-
-
 body {
   margin-top: 60px;
 }
@@ -32,14 +29,6 @@ body {
   display: flex;
   align-items: flex-start;
   margin-bottom: 10px;
-}
-
-.comment-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #ccc;
-  margin-right: 10px;
 }
 
 .comment-content {
@@ -57,13 +46,10 @@ body {
   margin-top: 5px;
 }
 
-
-
 .comment-timestamp {
   font-size: 12px;
   color: #999;
 }
-
 
 .navbar {
   position: fixed;
@@ -73,38 +59,32 @@ body {
   z-index: 999;
 }
 
-
 .navbar-logo {
-    font-size: 24px;
-    font-weight: bold;
+  font-size: 24px;
+  font-weight: bold;
 }
 
 .navbar-menu {
-    list-style: none;
-    display: flex;
-    align-items: center;
-    margin: 0;
-    padding: 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
 .navbar-item {
-    margin-right: 20px;
+  margin-right: 20px;
 }
 
 .navbar-item a {
-    color: #fff;
-    text-decoration: none;
-    transition: color 0.3s;
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.3s;
 }
 
 .navbar-item a:hover {
-    color: #ff7f50;
+  color: #ff7f50;
 }
-
-body {
-    margin-top: 60px; /* Выравнивание контента под навбаром */
-}
-
 
 .side-menu {
   height: calc(100vh - 60px);
@@ -128,23 +108,6 @@ body {
   padding: 10px;
 }
 
-.comment-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #ff7f50;
-  margin-right: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 24px;
-}
-
-.comment-avatar i {
-  transform: translateY(2px);
-}
-
 .comment-content {
   flex: 1;
   background-color: #f2f2f2;
@@ -163,4 +126,21 @@ body {
 .comment-timestamp {
   font-size: 12px;
   color: #999;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }

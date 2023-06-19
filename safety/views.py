@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.core import serializers
 from .forms import SafetyPlaceForm
 from rest_framework import viewsets
@@ -90,22 +90,40 @@ class SafetyPlaceViewSet(viewsets.ModelViewSet):
 @login_required
 @csrf_exempt
 def update_place(request, place_id):
-    if request.method == "POST":
-        data = request.POST
-        comment = data.get("comment", None)
-        if comment is not None:
-            SafetyPlace.objects.filter(id=place_id).update(comment=comment)
-            return JsonResponse({"status": "success"})
-        else:
-            return JsonResponse({"status": "error"}, status=400)
+    if request.method == 'POST':
+        place = get_object_or_404(SafetyPlace, pk=place_id)
+
+        if request.user != place.user and not request.user.is_superuser:
+            response = JsonResponse({"error": "Только создатель этого комментария может его редактировать."})
+            response.status_code = 403
+            return response
+
+        comment = request.POST.get('comment')
+        place.comment = comment
+        place.save()
+        return JsonResponse({'comment': comment})
+
+    else:
+        return JsonResponse({"error": "Неправильный запрос"})
 
 
 @login_required
 @csrf_exempt
 def delete_place(request, place_id):
-    if request.method == "POST":
-        SafetyPlace.objects.filter(id=place_id).delete()
-        return JsonResponse({"status": "success"})
+    if request.method == 'POST':
+        place = get_object_or_404(SafetyPlace, pk=place_id)
+
+        if request.user != place.user and not request.user.is_superuser:
+            response = JsonResponse({"error": "Только создатель этого комментария может его удалить."})
+            response.status_code = 403
+            return response
+
+        place.delete()
+        return JsonResponse({'success': True})
+
+    else:
+        return JsonResponse({"error": "Неправильный запрос"})
+
 
 
 from django.http import JsonResponse
