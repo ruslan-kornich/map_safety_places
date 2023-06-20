@@ -15,7 +15,7 @@ router = DefaultRouter()
 router.register("safetyplaces", SafetyPlaceViewSet)
 
 urlpatterns = [
-    path("", map_view, name="map"),
+    path("", map_view, name="home"),
     path("create/", create_place, name="create_place"),
     path("update/<int:place_id>/", update_place, name="update_place"),
     path("delete/<int:place_id>/", delete_place, name="delete_place"),

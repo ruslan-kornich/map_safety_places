@@ -21,21 +21,34 @@
 </head>
 <body>
 <nav class="navbar">
-        <div class="navbar-logo">
-            Safety Places
-        </div>
-        <ul class="navbar-menu">
+    <div class="navbar-logo" >
+        Safety Places
+    </div>
+    <ul class="navbar-menu">
+        <li class="navbar-item">
+            <a href="{% url 'home' %}">Home</a>
+        </li>
+        <li class="navbar-item">
+            <a href="#">About</a>
+        </li>
+        <li class="navbar-item">
+            <a href="#">Contact</a>
+        </li>
+        {% if user.is_authenticated %}
             <li class="navbar-item">
-                <a href="#">Home</a>
+                <span class="navbar-username">{{ user.username }}</span>
             </li>
             <li class="navbar-item">
-                <a href="#">About</a>
+                <a href="{% url 'accounts:logout' %}">Выход</a>
             </li>
+        {% else %}
             <li class="navbar-item">
-                <a href="#">Contact</a>
+                <a href="{% url 'accounts:login' %}">Вход</a>
             </li>
-        </ul>
-    </nav>
+        {% endif %}
+    </ul>
+</nav>
+
 
     {% block content %}
     {% endblock %}

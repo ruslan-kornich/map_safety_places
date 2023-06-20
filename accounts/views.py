@@ -2,7 +2,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.shortcuts import render, redirect
 from django.views import View
-
+from django.contrib.auth.views import LoginView as DefaultLoginView
+from django.urls import reverse_lazy
+from django.contrib.auth import logout
+from django.shortcuts import redirect
 
 class SignupView(View):
     def get(self, request):
@@ -17,10 +20,9 @@ class SignupView(View):
         return render(request, "accounts/signup.html", {"form": form})
 
 
-class LoginView(View):
-    def get(self, request):
-        form = AuthenticationForm()
-        return render(request, "accounts/login.html", {"form": form})
+class LoginView(DefaultLoginView):
+    def get_success_url(self):
+        return reverse_lazy('map')
 
     def post(self, request):
         form = AuthenticationForm(request, data=request.POST)
@@ -36,7 +38,6 @@ class LoginView(View):
         return render(request, "accounts/login.html", {"form": form})
 
 
-class LogoutView(View):
-    def post(self, request):
-        logout(request)
-        return redirect("accounts:login")
+def logout_view(request):
+    logout(request)
+    return redirect('accounts:login')

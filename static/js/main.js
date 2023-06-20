@@ -129,7 +129,7 @@ function createListItem(username, comment, timestamp) {
 }
 
 // Загружаем полигоны с помощью fetch
-fetch('https://deepstatemap.live/api/history/1677196268/geojson')
+fetch('https://deepstatemap.live/api/history/1687169321/geojson')
   .then(function (response) {
     if (response.ok) {
       return response.json();
