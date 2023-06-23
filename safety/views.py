@@ -56,7 +56,6 @@ def map_view(request):
         )
 
 
-
 @login_required
 def create_place(request):
     if request.method == "POST":
@@ -90,40 +89,43 @@ class SafetyPlaceViewSet(viewsets.ModelViewSet):
 @login_required
 @csrf_exempt
 def update_place(request, place_id):
-    if request.method == 'POST':
+    if request.method == "POST":
         place = get_object_or_404(SafetyPlace, pk=place_id)
 
         if request.user != place.user and not request.user.is_superuser:
-            response = JsonResponse({"error": "Только создатель этого комментария может его редактировать."})
+            response = JsonResponse(
+                {"error": "Тільки творець цього коментаря може його редагувати."}
+            )
             response.status_code = 403
             return response
 
-        comment = request.POST.get('comment')
+        comment = request.POST.get("comment")
         place.comment = comment
         place.save()
-        return JsonResponse({'comment': comment})
+        return JsonResponse({"comment": comment})
 
     else:
-        return JsonResponse({"error": "Неправильный запрос"})
+        return JsonResponse({"error": "Невірний запит"})
 
 
 @login_required
 @csrf_exempt
 def delete_place(request, place_id):
-    if request.method == 'POST':
+    if request.method == "POST":
         place = get_object_or_404(SafetyPlace, pk=place_id)
 
         if request.user != place.user and not request.user.is_superuser:
-            response = JsonResponse({"error": "Только создатель этого комментария может его удалить."})
+            response = JsonResponse(
+                {"error": "Тільки творець цього коментаря може його видалити"}
+            )
             response.status_code = 403
             return response
 
         place.delete()
-        return JsonResponse({'success': True})
+        return JsonResponse({"success": True})
 
     else:
-        return JsonResponse({"error": "Неправильный запрос"})
-
+        return JsonResponse({"error": "Невірний запит"})
 
 
 from django.http import JsonResponse
@@ -133,10 +135,10 @@ from .models import SafetyPlace
 
 class GetDataView(View):
     def get(self, request, *args, **kwargs):
-        north_east_lat = self.request.GET.get('north_east_lat')
-        north_east_lng = self.request.GET.get('north_east_lng')
-        south_west_lat = self.request.GET.get('south_west_lat')
-        south_west_lng = self.request.GET.get('south_west_lng')
+        north_east_lat = self.request.GET.get("north_east_lat")
+        north_east_lng = self.request.GET.get("north_east_lng")
+        south_west_lat = self.request.GET.get("south_west_lat")
+        south_west_lng = self.request.GET.get("south_west_lng")
 
         places = SafetyPlace.objects.filter(
             latitude__lte=north_east_lat,
@@ -147,13 +149,15 @@ class GetDataView(View):
 
         data = []
         for place in places:
-            data.append({
-                'id': place.id,
-                'latitude': place.latitude,
-                'longitude': place.longitude,
-                'comment': place.comment,
-                'user': place.user.username,
-                'created_at': place.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            })
+            data.append(
+                {
+                    "id": place.id,
+                    "latitude": place.latitude,
+                    "longitude": place.longitude,
+                    "comment": place.comment,
+                    "user": place.user.username,
+                    "created_at": place.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            )
 
         return JsonResponse(data, safe=False)

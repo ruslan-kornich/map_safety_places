@@ -7,7 +7,7 @@
 </div>
 
 <div id="point-list" class="side-menu">
-    <h3>Сведения о местах</h3>
+    <h3>Інформація про місця</h3>
     <div id="infoContainer">
         {% for place in places %}
         <div class="comment-avatar">
@@ -18,7 +18,7 @@
         <div class="time">{{ place.created_at }}</div>
         <div class="comment-avatar">
             {% if place.user.avatar %}
-            <img src="{{ place.user.avatar.url }}" alt="Аватар пользователя">
+            <img src="{{ place.user.avatar.url }}" alt="Аватар користувача">
             {% else %}
             <i class="fas fa-exclamation"></i>
             {% endif %}

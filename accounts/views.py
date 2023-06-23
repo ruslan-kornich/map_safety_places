@@ -7,6 +7,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 
+
 class SignupView(View):
     def get(self, request):
         form = UserCreationForm()
@@ -20,9 +21,12 @@ class SignupView(View):
         return render(request, "accounts/signup.html", {"form": form})
 
 
+from django.http import HttpResponseServerError
+
+
 class LoginView(DefaultLoginView):
     def get_success_url(self):
-        return reverse_lazy('map')
+        return reverse_lazy("map")
 
     def post(self, request):
         form = AuthenticationForm(request, data=request.POST)
@@ -32,12 +36,14 @@ class LoginView(DefaultLoginView):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect(
-                    "home"
-                )  # Замените 'home' на имя вашего представления главной страницы
-        return render(request, "accounts/login.html", {"form": form})
+                return redirect("home")
+
+        # В случае ошибки, возвращаем HTTP-ответ с кодом 500 и сообщением об ошибке
+        return HttpResponseServerError(
+            "Внутрішня помилка сервера. Будь ласка, спробуйте пізніше. Або введіть коректний пароль або логін "
+        )
 
 
 def logout_view(request):
     logout(request)
-    return redirect('accounts:login')
+    return redirect("home")

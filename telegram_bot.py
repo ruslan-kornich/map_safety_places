@@ -1,6 +1,12 @@
 import os
 import random
 import django
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "safety_places.settings")
 django.setup()
@@ -17,31 +23,25 @@ from accounts.models import User
 from asgiref.sync import sync_to_async
 from faker import Faker
 from typing import Tuple
+from django.core.files import File
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 env = environ.Env(DEBUG=(bool, False))
-from django.contrib.auth import get_user_model
 
 TOKEN = env("TOKEN")
-API_URL = "http://127.0.0.1:8000"
+API_URL = env("API_URL")
+
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 fake = Faker()
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 default_token_generator = PasswordResetTokenGenerator()
-# Keyboard with location button
 location_kb = ReplyKeyboardMarkup(resize_keyboard=True)
-location_kb.add(KeyboardButton("Отправить геолокацию", request_location=True))
-
-# API authentication data
-API_AUTH = {}
-
-# Cache user locations
-user_locations = {}
+location_kb.add(KeyboardButton("Відправити свою геолокацію", request_location=True))
 
 
-# Define user states
 class UserStates(StatesGroup):
     WAITING_FOR_LOCATION = State()
     WAITING_FOR_DESCRIPTION = State()
@@ -55,17 +55,12 @@ async def check_user_exists(username: str) -> bool:
         return False
 
 
-# Function to generate a random password
 def generate_password(length):
     # All the characters that can be used to generate a password
     chars = string.ascii_letters + string.digits
     # Use a list comprehension to generate a list of random characters, then join them into a string
     password = "".join(random.choice(chars) for _ in range(length))
     return password
-
-
-# Import the File class from Django
-from django.core.files import File
 
 
 # Add the get_profile_photo function above the start_cmd_handler function
@@ -96,127 +91,176 @@ async def get_user_by_token(token):
 
 @dp.message_handler(commands="start")
 async def start_cmd_handler(message: types.Message, state: FSMContext):
-    global API_AUTH  # Update the global variable inside the function
+    try:
+        username = message.from_user.username
+        if not username:
+            # Generate a random username using Faker
+            username = fake.user_name()
 
-    username = message.from_user.username
-    if await check_user_exists(username):
-        # User already exists, update the token
-        user_model = get_user_model()
-        user = await sync_to_async(user_model.objects.get)(username=username)
-        token = await generate_token(user)
-        user.token = token
-        await sync_to_async(user.save)()
+        if await check_user_exists(username):
+            # User already exists, update the token
+            user_model = get_user_model()
+            user = await sync_to_async(user_model.objects.get)(username=username)
+            token = await generate_token(user)
+            user.token = token
+            await sync_to_async(user.save)()
 
-        await bot.send_message(message.chat.id, "Вы уже зарегистрированы.")
-    else:
-        # Generate a random 6-character password
-        password = generate_password(6)
+            await bot.send_message(message.chat.id, "Вас вже зареєстровано")
+        else:
+            # Generate a random 6-character password
+            password = generate_password(6)
 
-        # Create new user in Django
-        create_user_sync = sync_to_async(User.objects.create_user)
-        user = await create_user_sync(
-            username=username,
-            first_name=message.from_user.first_name,
-            last_name=message.from_user.last_name,
-            email=fake.email(),
-            is_active=True,
-            is_staff=True,
+            # Create new user in Django
+            create_user_sync = sync_to_async(User.objects.create_user)
+            user = await create_user_sync(
+                username=username,
+                first_name=message.from_user.first_name,
+                last_name=message.from_user.last_name,
+                email=fake.email(),
+                is_active=True,
+                is_staff=True,
+            )
+            set_password_sync = sync_to_async(user.set_password)
+            await set_password_sync(password)
+            save_sync = sync_to_async(user.save)
+            await save_sync()
+
+            # Download and save the profile photo
+            photo_path = await get_profile_photo(message.chat.id)
+
+            if photo_path is not None:
+                os.makedirs(os.path.dirname(photo_path), exist_ok=True)
+                with open(photo_path, "rb") as photo_file:
+                    django_file = File(photo_file)
+                    save_sync = sync_to_async(user.avatar.save)
+                    await save_sync(f"{username}_avatar.jpg", django_file)
+                os.remove(
+                    photo_path
+                )
+
+            await bot.send_message(
+                message.chat.id,
+                f"Вас успішно зареєстровано!\n"
+                f"Логін: {username}\n"
+                f"Пароль: {password}\n",
+            )
+
+        # Save the user's token and id to the state context
+        await state.update_data(api_auth={"token": user.token, "user_id": user.id})
+
+        await UserStates.WAITING_FOR_LOCATION.set()  # Transition to waiting for location state
+
+        await message.answer(
+            "Будь-ласка відправте мені свою геолокацию, або виберіть точку на карті.",
+            reply_markup=location_kb,
         )
-        set_password_sync = sync_to_async(user.set_password)
-        await set_password_sync(password)
-        save_sync = sync_to_async(user.save)
-        await save_sync()
+    except Exception as e:
+        logger.exception("An error occurred")
+        await bot.send_message(message.chat.id, f"Сталась помилка: {e}\nСпробуй ще раз")
 
-        # Download and save the profile photo
-        photo_path = await get_profile_photo(message.chat.id)
-        if photo_path is not None:
-            with open(photo_path, "rb") as photo_file:
-                django_file = File(photo_file)
-                save_sync = sync_to_async(user.avatar.save)
-                await save_sync(f"{username}_avatar.jpg", django_file)
 
-        await bot.send_message(
-            message.chat.id,
-            f"Вы успешно зарегистрированы!\n"
-            f"Логин: {username}\n"
-            f"Пароль: {password}\n",
-        )
+@dp.message_handler(commands=["help", "settings", "something_else"])
+async def unknown_command_handler(message: types.Message):
+    await bot.send_message(message.chat.id, "Почніть з команди /start ")
 
-    API_AUTH = {"token": user.token, "user_id": user.id}  # Update API_AUTH here
 
-    await UserStates.WAITING_FOR_LOCATION.set()  # Transition to waiting for location state
-
-    await message.answer(
-        "Пожалуйста, отправьте мне свою геолокацию.", reply_markup=location_kb
+@dp.message_handler(
+    state=UserStates.WAITING_FOR_LOCATION, content_types=ContentType.TEXT
+)
+async def wrong_input_in_location_state_handler(message: types.Message):
+    await bot.send_message(
+        message.chat.id, "Будь-ласка, відправте геолокацію, а не текст."
     )
 
 
 @dp.message_handler(
-    content_types=ContentType.LOCATION, state=UserStates.WAITING_FOR_LOCATION
+    state=UserStates.WAITING_FOR_LOCATION, content_types=ContentType.LOCATION
 )
-async def location_msg_handler(message: types.Message, state: FSMContext):
-    # Handle location message
-    latitude = message.location.latitude
-    longitude = message.location.longitude
+async def location_message_handler(message: types.Message, state: FSMContext):
+    try:
+        user_location = message.location
+        latitude = user_location.latitude
+        longitude = user_location.longitude
 
-    # Save location in user_locations dictionary
-    user_locations[message.chat.id] = {"latitude": latitude, "longitude": longitude}
+        # Save the location to the state context
+        await state.update_data(location={"latitude": latitude, "longitude": longitude})
 
-    await UserStates.WAITING_FOR_DESCRIPTION.set()  # Transition to waiting for description state
+        await UserStates.WAITING_FOR_DESCRIPTION.set()  # Transition to waiting for description state
 
-    await message.answer("Теперь напишите комментарий к этому месту.")
+        await bot.send_message(message.chat.id, "Будь-ласка, введіть опис місця.")
+    except Exception as e:
+        logger.exception("An error occurred")
+        await bot.send_message(message.chat.id, f"Сталась помилка: {e}\nСпробуй ще раз")
 
 
-@dp.message_handler(state=UserStates.WAITING_FOR_DESCRIPTION)
-async def description_msg_handler(message: types.Message, state: FSMContext):
-    # Handle description message
-    description = message.text
+@dp.message_handler(
+    state=UserStates.WAITING_FOR_DESCRIPTION, content_types=ContentType.TEXT
+)
+async def description_message_handler(message: types.Message, state: FSMContext):
+    try:
+        description = message.text
 
-    # Get location from user_locations dictionary
-    location = user_locations.get(message.chat.id)
+        # Get the location from the state context
+        state_data = await state.get_data()
+        location = state_data.get("location", {})
 
-    if location:
-        # Save location and description to database or perform necessary actions
         await save_location_description(
-            location["latitude"], location["longitude"], description
+            location["latitude"], location["longitude"], description, state
         )
 
-        # Clear the location from user_locations dictionary
-        user_locations.pop(message.chat.id)
+        await bot.send_message(message.chat.id, "Ваше місце було збережено.")
 
         await UserStates.WAITING_FOR_LOCATION.set()  # Transition back to waiting for location state
 
-        await message.answer("Место успешно добавлено.")
-    else:
-        await message.answer("Произошла ошибка. Попробуйте еще раз.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        await bot.send_message(message.chat.id, f"Сталась помилка: {e}\nСпробуй ще раз")
+
+
+@dp.message_handler(
+    state=UserStates.WAITING_FOR_DESCRIPTION, content_types=ContentType.ANY
+)
+async def wrong_input_in_description_state_handler(message: types.Message):
+    await bot.send_message(
+        message.chat.id,
+        "Будь-ласка, введіть опис місця, а не відправляйте геолокацію або інший тип контента.",
+    )
 
 
 async def save_location_description(
-        latitude: float, longitude: float, description: str
+        latitude: float, longitude: float, description: str, state: FSMContext
 ):
-    headers = {"Authorization": f'Token {API_AUTH.get("token")}'}
+    try:
+        # Get the user's API authentication data from the state
+        state_data = await state.get_data()
+        api_auth = state_data.get("api_auth", {})
 
-    data = {
-        "user": API_AUTH.get("user_id"),  # Передайте значение ID пользователя
-        "comment": description,  # Передайте значение комментария
-        "latitude": latitude,
-        "longitude": longitude,
-    }
+        headers = {"Authorization": f'Token {api_auth.get("token")}'}
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-                f"{API_URL}/api/safetyplaces/", headers=headers, json=data
-        ) as response:
-            if response.status == 201:
-                print("Место успешно добавлено!")
-            else:
-                error_message = await response.text()
-                print(
-                    f"Ошибка при добавлении места. Код ответа: {response.status}. Текст ошибки: {error_message}"
-                )
+        data = {
+            "user": api_auth.get("user_id"),
+            "comment": description,
+            "latitude": latitude,
+            "longitude": longitude,
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                    f"{API_URL}/api/safetyplaces/", headers=headers, json=data
+            ) as response:
+                if response.status == 201:
+                    print("Місце успішно додано")
+                else:
+                    error_message = await response.text()
+                    print(
+                        f"Помилка при додаванні місця, Код {response.status}. Текст помилки: {error_message}"
+                    )
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":
     from aiogram import executor
 
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp)
